@@ -69,6 +69,25 @@ To sync `project.yml` from the current Xcode project without building:
 
 If you edit `project.yml` without running `xcodegen generate`, the next build may overwrite your YAML changes with the values still in the `.xcodeproj`.
 
+## Building an IPA (Codemagic or any Mac)
+
+`codemagic.yaml` defines two workflows. Connect the repo in [Codemagic](https://codemagic.io) and start one from the UI.
+
+| Workflow | Needs | Produces |
+| --- | --- | --- |
+| `ios-unsigned` | nothing | `Trinote-unsigned.ipa` for AltStore / SideStore / Sideloadly, which re-sign it with your Apple ID |
+| `ios-release` | paid Apple Developer account | signed App Store IPA, uploaded to TestFlight |
+
+On a Mac with Xcode 26+ and XcodeGen, `./Scripts/build_unsigned_ipa.sh` builds the same unsigned IPA into `build/ipa/`.
+
+### Signed builds (`ios-release`)
+
+The bundle ID, App Group and team come from `TRINOTE_BUNDLE_ID`, `TRINOTE_APP_GROUP` and `DEVELOPMENT_TEAM` in `project.yml`; CI rewrites them with `Scripts/ci_set_identity.sh`, so you sign with your own IDs.
+
+1. In the Apple Developer portal, register the App Group (`group.<your bundle ID>`) and two App IDs, `<your bundle ID>` and `<your bundle ID>.fileshare`, each with the **App Groups** capability set to that group. Create the app in App Store Connect.
+2. Create an App Store Connect API key (Users and Access → Integrations, App Manager role).
+3. In Codemagic, add an environment group named `trinote_signing` with `APP_STORE_CONNECT_ISSUER_ID`, `APP_STORE_CONNECT_KEY_IDENTIFIER`, `APP_STORE_CONNECT_PRIVATE_KEY` (the `.p8` contents), `CERTIFICATE_PRIVATE_KEY` (an RSA key, e.g. `ssh-keygen -t rsa -b 2048 -m PEM -f cert_key -q -N ""`), `BUNDLE_ID` and `APPLE_TEAM_ID`. Optional: `APP_GROUP_ID` and `APP_STORE_APPLE_ID` (numeric app ID, so build numbers continue from TestFlight's).
+
 ## Connecting to a Server
 
 ### Password sign-in
