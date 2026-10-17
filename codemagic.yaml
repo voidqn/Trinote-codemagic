@@ -1,0 +1,90 @@
+# Codemagic CI (https://codemagic.io) — builds Trinote.ipa on a hosted Mac.
+#
+#   ios-unsigned  No Apple account needed. Produces Trinote-unsigned.ipa for sideloading
+#                 (AltStore / SideStore / Sideloadly re-sign it with your Apple ID).
+#   ios-release   Signed App Store build, uploaded to TestFlight. Needs the
+#                 `trinote_signing` environment group described below.
+#
+# Both workflows start manually from the Codemagic UI (add a `triggering:` block to
+# build on push).
+
+definitions:
+  instance: &instance mac_mini_m2
+  xcode: &xcode latest # the app uses iOS 26 APIs, so Xcode 26 or newer is required
+  install_xcodegen: &install_xcodegen
+    name: Install XcodeGen
+    script: brew install xcodegen
+  generate_project: &generate_project
+    name: Generate Xcode project
+    script: xcodegen generate
+
+workflows:
+  ios-unsigned:
+    name: iOS unsigned IPA (sideload)
+    instance_type: *instance
+    max_build_duration: 60
+    environment:
+      xcode: *xcode
+    scripts:
+      - *install_xcodegen
+      - *generate_project
+      - name: Build unsigned IPA
+        script: ./Scripts/build_unsigned_ipa.sh "$CM_BUILD_DIR/build/ipa"
+    artifacts:
+      - build/ipa/*.ipa
+      - /tmp/xcodebuild_logs/*.log
+
+  ios-release:
+    name: iOS signed release (TestFlight)
+    instance_type: *instance
+    max_build_duration: 90
+    environment:
+      xcode: *xcode
+      # Codemagic → Teams → Global variables and secrets → group `trinote_signing`:
+      #   APP_STORE_CONNECT_ISSUER_ID       App Store Connect API key issuer ID
+      #   APP_STORE_CONNECT_KEY_IDENTIFIER  API key ID
+      #   APP_STORE_CONNECT_PRIVATE_KEY     contents of the AuthKey_XXXX.p8 file (secret)
+      #   CERTIFICATE_PRIVATE_KEY           RSA private key for the distribution certificate (secret)
+      #   BUNDLE_ID                         your app ID, e.g. com.example.trinote
+      #   APPLE_TEAM_ID                     your 10-character team ID
+      #   APP_GROUP_ID      (optional)      default group.$BUNDLE_ID
+      #   APP_STORE_APPLE_ID (optional)     numeric app ID, so the build number follows TestFlight's
+      groups:
+        - trinote_signing
+    scripts:
+      - *install_xcodegen
+      - name: Set bundle ID, team and build number
+        script: |
+          if [[ -n "${APP_STORE_APPLE_ID:-}" ]]; then
+            LATEST=$(app-store-connect get-latest-testflight-build-number "$APP_STORE_APPLE_ID" || echo 0)
+            export TRINOTE_BUILD_NUMBER=$((LATEST + 1))
+          else
+            export TRINOTE_BUILD_NUMBER="$BUILD_NUMBER"
+          fi
+          ./Scripts/ci_set_identity.sh
+      - *generate_project
+      - name: Set up code signing
+        script: |
+          keychain initialize
+          # Matches the app and its share extension ($BUNDLE_ID.fileshare).
+          app-store-connect fetch-signing-files "$BUNDLE_ID" \
+            --type IOS_APP_STORE \
+            --create
+          keychain add-certificates
+          xcode-project use-profiles
+      - name: Build signed IPA
+        script: |
+          xcode-project build-ipa \
+            --project Trinote.xcodeproj \
+            --scheme Trinote \
+            --config Release
+    artifacts:
+      - build/ios/ipa/*.ipa
+      - /tmp/xcodebuild_logs/*.log
+      - $HOME/Library/Developer/Xcode/DerivedData/**/Build/**/*.dSYM
+    publishing:
+      app_store_connect:
+        api_key: $APP_STORE_CONNECT_PRIVATE_KEY
+        key_id: $APP_STORE_CONNECT_KEY_IDENTIFIER
+        issuer_id: $APP_STORE_CONNECT_ISSUER_ID
+        submit_to_testflight: true
