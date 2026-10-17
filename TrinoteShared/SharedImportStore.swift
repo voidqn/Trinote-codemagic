@@ -9,7 +9,7 @@ enum SharedImportStoreError: Error, LocalizedError {
     var errorDescription: String? {
         switch self {
         case .appGroupUnavailable:
-            "App Group container is unavailable. Check that both targets use group.com.trinote."
+            "App Group container is unavailable. Check that both targets use \(SharedImportConstants.appGroupIdentifier)."
         case .noPendingPayload:
             "No pending shared import was found."
         case .encodeFailed:

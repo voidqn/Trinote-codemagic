@@ -27,6 +27,10 @@ settings:
     INFOPLIST_FILE: Trinote/Resources/Info.plist
     ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
     DEVELOPMENT_TEAM: R6WYB662P7
+    # Identity used by every target. Change these (plus DEVELOPMENT_TEAM) to sign
+    # with another Apple account.
+    TRINOTE_BUNDLE_ID: com.trinote
+    TRINOTE_APP_GROUP: group.com.trinote
     CODE_SIGN_STYLE: Automatic
     SWIFT_STRICT_CONCURRENCY: complete
     VERSIONING_SYSTEM: apple-generic
@@ -96,7 +100,7 @@ targets:
         basedOnDependencyAnalysis: false
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.trinote
+        PRODUCT_BUNDLE_IDENTIFIER: $(TRINOTE_BUNDLE_ID)
         INFOPLIST_FILE: Trinote/Resources/Info.plist
         GENERATE_INFOPLIST_FILE: false
         ENABLE_USER_SCRIPT_SANDBOXING: false
@@ -124,7 +128,7 @@ targets:
         basedOnDependencyAnalysis: false
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.trinote.fileshare
+        PRODUCT_BUNDLE_IDENTIFIER: $(TRINOTE_BUNDLE_ID).fileshare
         PRODUCT_NAME: TrinoteShare
         INFOPLIST_FILE: TrinoteShare/Info.plist
         GENERATE_INFOPLIST_FILE: false
@@ -153,7 +157,7 @@ targets:
       - target: Trinote
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.trinote.tests
+        PRODUCT_BUNDLE_IDENTIFIER: $(TRINOTE_BUNDLE_ID).tests
         GENERATE_INFOPLIST_FILE: true
         TEST_HOST: "$(BUILT_PRODUCTS_DIR)/Trinote.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Trinote"
         BUNDLE_LOADER: "$(TEST_HOST)"
