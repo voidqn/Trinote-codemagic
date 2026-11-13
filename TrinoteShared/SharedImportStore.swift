@@ -9,7 +9,7 @@ enum SharedImportStoreError: Error, LocalizedError {
     var errorDescription: String? {
         switch self {
         case .appGroupUnavailable:
-            "App Group container is unavailable. Check that both targets use \(SharedImportConstants.appGroupIdentifier)."
+            "App Group container is unavailable. Check that both targets use \(SharedImportConstants.appGroupIdentifier) (bundle \(Bundle.main.bundleIdentifier ?? "?"))."
         case .noPendingPayload:
             "No pending shared import was found."
         case .encodeFailed:
