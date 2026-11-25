@@ -5,9 +5,15 @@ workflows:
     max_build_duration: 60
     environment:
       xcode: latest
+      groups:
+        # Optional: define CUSTOM_APP_GROUP_ID in this Codemagic UI group
+        # (e.g. group.xxxxxxxx.1 from your signing certificate's .mobileprovision)
+        # so Share Sheet App Group handoff matches your signing profile.
+        - trinote_signing
       vars:
         XCODE_SCHEME: "Trinote"
         XCODE_CONFIGURATION: "Release"
+        EMBED_ADHOC_ENTITLEMENTS: "true"
     cache:
       cache_paths:
         - $HOME/Library/Caches/TrinoteSPM
